@@ -5,30 +5,61 @@ import hashlib
 app = Flask(__name__)
 
 # Hardcoded emails
-participants = [
+PARTICIPANTS = [
+    "example1@example.com"
+    "example2@example.com"
+    "example3@example.com"
+    "example4@example.com"
 ]
 
 # Store phrases and pairings
-phrases = {email: None for email in participants}
+phrases = {email: None for email in PARTICIPANTS}
 pairings = {}
 hashed_phrases = {}
 
 
-def generate_pairings():
+def generate_pairings(participants):
+    if len(participants) < 2:
+        raise ValueError("At least two participants are required.")
+
     shuffled = participants[:]
     random.shuffle(shuffled)
-    return list(zip(shuffled, shuffled[1:] + shuffled[:1]))
+
+    # Ensure no one is paired with themselves
+    for i in range(len(shuffled)):
+        if shuffled[i] == participants[i]:
+            swap_index = (i + 1) % len(shuffled)
+            shuffled[i], shuffled[swap_index] = shuffled[swap_index], shuffled[i]
+
+    return list(zip(participants, shuffled))
+
+
+def test_pairings():
+    for _ in range(1000):  # Repeat the test many times to ensure reliability
+        participants = ["Alice", "Bob", "Charlie", "David"]
+        pairings = generate_pairings(participants)
+
+        for giver, receiver in pairings:
+            if giver == receiver:
+                return False, pairings  # Fail if someone is paired with themselves
+
+        if len(set(receiver for _, receiver in pairings)) != len(participants):
+            return False, pairings  # Fail if someone is missing or duplicated
+
+    return True, "All tests passed"
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    result, message = test_pairings()
+    print(f"Test result: {result}, Message: {message}")
     if request.method == "POST":
         email = request.form.get("email")
         phrase = request.form.get("phrase")
-        if email in participants and phrase:
+        if email in PARTICIPANTS and phrase:
             phrases[email] = phrase
             if all(phrases.values()):
-                temp_pairings = generate_pairings()
+                temp_pairings = generate_pairings(PARTICIPANTS)
                 for giver, receiver in temp_pairings:
                     pairings[giver] = receiver
                     hashed_phrases[giver] = hashlib.sha256(
@@ -49,7 +80,7 @@ def result():
     if not all(phrases.values()):
         return jsonify({"error": "Pairings not yet generated."})
 
-    if email in participants and phrase:
+    if email in PARTICIPANTS and phrase:
         hashed_input = hashlib.sha256(phrase.encode()).hexdigest()
         if hashed_phrases.get(email) == hashed_input:
             assigned_pairing = pairings[email]
@@ -63,7 +94,7 @@ def result():
 def activity_status():
     activity_status = [
         {"email": email, "status": "Submitted" if phrases[email] else "Pending"}
-        for email in participants
+        for email in PARTICIPANTS
     ]
     return jsonify(activity_status)
 
