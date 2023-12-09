@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secret Santa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        form {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+        input, button {
+            margin: 10px;
+        }
+        .message {
+            margin: 10px;
+            color: green;
+        }
+        .error {
+            margin: 10px;
+            color: red;
+        }
+        .activity-list {
+            margin-top: 30px;
+        }
+        body {
+            background-color: #fff0f5; /* Light pink background for a cozy feel */
+            color: #003366; /* Dark blue for contrast */
+        }
+        h1 {
+            color: #d10000; /* Festive red for the main title */
+        }
+        button {
+            background-color: #d10000; /* Festive red buttons */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #f44336; /* Lighter red on hover */
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Crazy Secret Santa Game! 🚀</h1>
+
+    <div>
+        <h2>🎄 Enter Your Festive Phrase 🎄</h2>
+        <form id="phraseForm">
+            <input type="email" name="email" placeholder="Enter your elf-mail" required>
+            <input type="text" name="phrase" placeholder="Enter your merry phrase" required>
+            <button type="submit">Spread the Joy</button>
+        </form>
+        <p id="phraseMessage" class="message"></p>
+    </div>
+
+    <div>
+        <h2>🎅 Check Who You're Gifting! 🎁</h2>
+        <form id="resultForm">
+            <input type="email" name="email" placeholder="Enter your elf-mail" required>
+            <input type="text" name="phrase" placeholder="Enter your merry phrase" required>
+            <button type="submit">Reveal the Magic</button>
+        </form>
+        <p id="resultMessage" class="message"></p>
+    </div>
+
+    <div class="activity-list">
+        <h2>🌟 Elves Who've Joined the Fun 🌟</h2>
+        <ul id="activityList">
+            <!-- Activity list items will be added here -->
+        </ul>
+    </div>
+    <script>
+        document.getElementById('phraseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('phraseMessage').textContent = data.message || data.error;
+                document.getElementById('phraseMessage').className = data.error ? 'error' : 'message';
+            })
+            .catch(error => {
+                document.getElementById('phraseMessage').textContent = 'An error occurred.';
+                document.getElementById('phraseMessage').className = 'error';
+            });
+        });
+
+        document.getElementById('resultForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/result', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('resultMessage').textContent = data.pairing || data.error;
+                document.getElementById('resultMessage').className = data.error ? 'error' : 'message';
+            })
+            .catch(error => {
+                document.getElementById('resultMessage').textContent = 'An error occurred.';
+                document.getElementById('resultMessage').className = 'error';
+            });
+        });
+        function updateActivityList() {
+            fetch('/activity_status')
+            .then(response => response.json())
+            .then(data => {
+                const activityList = document.getElementById('activityList');
+                activityList.innerHTML = ''; // Clear existing list
+                data.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${item.email}: ${item.status}`;
+                    activityList.appendChild(listItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching activity status:', error);
+            });
+        }
+
+        // Call updateActivityList on page load and after form submissions
+        window.onload = updateActivityList;
+        document.getElementById('phraseForm').addEventListener('submit', function(e) {
+            // ... existing form handler ...
+            updateActivityList(); // Update the activity list after form submission
+        });
+    </script>
+</body>
+</html>
